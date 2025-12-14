@@ -1,5 +1,7 @@
 import time
+import csv
 import numpy as np
+import matplotlib.pyplot as plt
 
 def softmax(x, axis=-1):
     x = x - np.max(x, axis=axis, keepdims=True)
@@ -50,8 +52,11 @@ def time_fn(fn, X, warmup=2, iters=5):
 def main():
     d = 256
     ns = [128, 256, 512, 1024, 2048, 4096]   # bump up/down based on your machine
+    rows = []
+
     print(f"d={d}")
     print("n, attention_ms, fft_ms")
+
     for n in ns:
         X = np.random.randn(n, d).astype(np.float32)
 
@@ -63,6 +68,29 @@ def main():
         fft_ms = 1000 * time_fn(fft_mixer, X)
 
         print(f"{n}, {att_ms:.2f}, {fft_ms:.2f}")
+        rows.append((n, att_ms, fft_ms))
+
+    # Save CSV
+    with open("bench_results.csv", "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["n", "attention_ms", "fft_ms"])
+        w.writerows(rows)
+
+    # Plot (log-log)
+    ns_plot = [r[0] for r in rows]
+    att_plot = [r[1] for r in rows]
+    fft_plot = [r[2] for r in rows]
+
+    plt.figure()
+    plt.loglog(ns_plot, att_plot, marker="o", label="attention")
+    plt.loglog(ns_plot, fft_plot, marker="o", label="fft")
+    plt.xlabel("sequence length (n)")
+    plt.ylabel("time (ms)")
+    plt.title("Scaling: attention vs FFT mixing (log-log)")
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig("bench_scaling_loglog.png", dpi=200)
+    plt.show()
 
 if __name__ == "__main__":
     main()
