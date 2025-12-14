@@ -17,6 +17,7 @@ def spectral_mix(X, F, T):
     F: (T//2+1, d) complex spectral filter (learned)
     returns H: (T, d) real
     """
+    assert X.shape[0] == T, f"Expected X.shape[0]=={T}, got {X.shape[0]}"
     Z = np.fft.rfft(X, axis=0, norm="ortho")          # (T//2+1, d) complex
     Zf = Z * F                                        # elementwise complex
     H = np.fft.irfft(Zf, n=T, axis=0, norm="ortho")   # (T, d) real
@@ -109,9 +110,13 @@ def main():
 
     # Quick sample
     seed = "in the "
+    pad_id = stoi.get(" ", 0)
     context = [stoi[c] for c in seed]
     for _ in range(200):
-        x = np.array(context[-T:], dtype=np.int64)
+        window = context[-T:]
+        if len(window) < T:
+            window = [pad_id] * (T - len(window)) + window
+        x = np.array(window, dtype=np.int64)
         X = E[x]
         H, Z = spectral_mix(X, F, T)
         logits = (H @ W) / np.sqrt(d) + b
