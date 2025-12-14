@@ -119,8 +119,9 @@ def main():
         x = np.array(window, dtype=np.int64)
         X = E[x]
         H, Z = spectral_mix(X, F, T)
-        logits = (H @ W) / np.sqrt(d) + b
-        p = softmax(logits[None, :], axis=-1).ravel()
+        logits = (H @ W) / np.sqrt(d) + b   # (T, V)
+        logits_last = logits[-1]            # (V,)
+        p = softmax(logits_last[None, :], axis=-1).ravel()
         nxt = int(rng.choice(np.arange(V), p=p))
         context.append(nxt)
 
