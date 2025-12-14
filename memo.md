@@ -70,6 +70,8 @@ This establishes that attention‑free spectral mixing can participate in gradie
 ## Why This Matters
 Scaling limits, not constant factors, dominate the cost of large language models. Any operator that changes the asymptotic behavior of sequence interaction directly attacks the long‑context and compute‑cost bottlenecks faced by current architectures.
 
+This suggests a path toward long-context models whose cost grows subquadratically with context length, rather than exploding with it.
+
 ---
 
 ## Next Steps
