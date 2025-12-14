@@ -65,18 +65,18 @@ def main():
     for step in range(1, steps + 1):
         # Sample a random window
         start = rng.integers(0, len(data) - (T + 1))
-        x_idx = data[start : start + T]       # input
-        y_idx = data[start + 1 : start + T + 1]  # next-char targets
+        x_idx = data[start : start + T]             # input
+        y_idx = data[start + 1 : start + T + 1]     # next-char targets
 
         # Forward
-        X = E[x_idx]                        # (T, d)
-        H, Z = spectral_mix(X, F, T)
-        logits = (H @ W) / np.sqrt(d) + b
+        X = E[x_idx]                         # (T, d)
+        H, Z = spectral_mix(X, F, T)         # H: (T, d), Z: (T//2+1, d) complex
+        logits = (H @ W) / np.sqrt(d) + b    # (T, V)
         probs = softmax(logits, axis=-1)
         loss = cross_entropy(probs, y_idx)
 
         # Backprop (manual, simple)
-        dlogits = probs
+        dlogits = probs.copy()  # avoid mutating probs in-place during training backprop
         dlogits[np.arange(T), y_idx] -= 1.0
         dlogits /= T  # mean
 
@@ -119,10 +119,22 @@ def main():
         x = np.array(window, dtype=np.int64)
         X = E[x]
         H, Z = spectral_mix(X, F, T)
-        logits = (H @ W) / np.sqrt(d) + b   # (T, V)
-        logits_last = logits[-1]            # (V,)
+        logits = (H @ W) / np.sqrt(d) + b       # (T, V)
+
+        temperature = 0.9
+        top_k = 12
+
+        logits_last = logits[-1] / temperature  # (V,)
         p = softmax(logits_last[None, :], axis=-1).ravel()
-        nxt = int(rng.choice(np.arange(V), p=p))
+
+        # top-k filter
+        top_k = min(top_k, V)  # guard against small vocab sizes
+        top_idx = np.argpartition(p, -top_k)[-top_k:]
+        p2 = np.zeros_like(p)
+        p2[top_idx] = p[top_idx]
+        p2 /= p2.sum()
+
+        nxt = int(rng.choice(np.arange(V), p=p2))
         context.append(nxt)
 
     print("\n--- sample ---")
