@@ -11,9 +11,16 @@ def one_hot(idx, vocab):
     x[np.arange(idx.size), idx] = 1.0
     return x
 
-def fft_mix(X):
-    # X: (T, d)
-    return np.fft.fft2(X).real.astype(np.float32)
+def spectral_mix(X, F, T):
+    """
+    X: (T, d) real
+    F: (T//2+1, d) complex spectral filter (learned)
+    returns H: (T, d) real
+    """
+    Z = np.fft.rfft(X, axis=0, norm="ortho")          # (T//2+1, d) complex
+    Zf = Z * F                                        # elementwise complex
+    H = np.fft.irfft(Zf, n=T, axis=0, norm="ortho")   # (T, d) real
+    return H, Z
 
 def cross_entropy(probs, y_idx):
     # probs: (T, V), y_idx: (T,)
@@ -39,8 +46,8 @@ def main():
     # Hyperparams (tiny)
     d = 128
     T = 256               # sequence length per step
-    lr = 0.2
-    steps = 300
+    lr = 0.05
+    steps = 500
 
     rng = np.random.default_rng(0)
 
@@ -48,6 +55,10 @@ def main():
     E = (rng.standard_normal((V, d)).astype(np.float32) / np.sqrt(d))
     W = (rng.standard_normal((d, V)).astype(np.float32) / np.sqrt(d))
     b = np.zeros((V,), dtype=np.float32)
+
+    # Learned spectral filter, start near-identity
+    F = np.ones((T // 2 + 1, d), dtype=np.complex64)
+    F += (0.01 * (rng.standard_normal(F.shape) + 1j * rng.standard_normal(F.shape))).astype(np.complex64)
 
     t0 = time.perf_counter()
     for step in range(1, steps + 1):
@@ -57,9 +68,9 @@ def main():
         y_idx = data[start + 1 : start + T + 1]  # next-char targets
 
         # Forward
-        X = E[x_idx]                 # (T, d)
-        H = fft_mix(X)               # (T, d)  <-- attention replacement
-        logits = H @ W + b           # (T, V)
+        X = E[x_idx]                        # (T, d)
+        H, Z = spectral_mix(X, F, T)
+        logits = (H @ W) / np.sqrt(d) + b
         probs = softmax(logits, axis=-1)
         loss = cross_entropy(probs, y_idx)
 
@@ -72,10 +83,16 @@ def main():
         db = np.sum(dlogits, axis=0)         # (V,)
         dH = dlogits @ W.T                   # (T, d)
 
-        # IMPORTANT: fft_mix is not differentiable as written (real(fft2))
-        # For this seed, we treat it as a fixed mixing operator and pass gradients through as identity.
-        # (Next iteration: use a proper linear operator with known Jacobian.)
-        dX = dH
+        # Backprop through irfft(Z * F):
+        # H = irfft(Zf), so dZf = rfft(dH)
+        dZf = np.fft.rfft(dH, axis=0, norm="ortho")          # (T//2+1, d) complex
+
+        # Zf = Z * F
+        dF = dZf * np.conj(Z)                                # (T//2+1, d) complex
+        dZ = dZf * np.conj(F)                                # (T//2+1, d) complex
+
+        # Z = rfft(X) so dX = irfft(dZ)
+        dX = np.fft.irfft(dZ, n=T, axis=0, norm="ortho").real.astype(np.float32)
 
         dE = np.zeros_like(E)
         np.add.at(dE, x_idx, dX)             # accumulate per embedding row
@@ -84,6 +101,7 @@ def main():
         E -= lr * dE
         W -= lr * dW
         b -= lr * db
+        F -= (lr * dF).astype(np.complex64)
 
         if step % 25 == 0:
             elapsed = time.perf_counter() - t0
@@ -95,8 +113,8 @@ def main():
     for _ in range(200):
         x = np.array(context[-T:], dtype=np.int64)
         X = E[x]
-        H = fft_mix(X)
-        logits = (H[-1] @ W + b)
+        H, Z = spectral_mix(X, F, T)
+        logits = (H @ W) / np.sqrt(d) + b
         p = softmax(logits[None, :], axis=-1).ravel()
         nxt = int(rng.choice(np.arange(V), p=p))
         context.append(nxt)
