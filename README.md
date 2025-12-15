@@ -100,10 +100,11 @@ This project is a seed. It serves to prove that a different scaling law is both 
 ---
 
 ## Next Directions
-- Residual + normalization layers
-- Hybrid models (spectral + sparse/local attention)
-- Longer-context experiments (n ≫ 4096)
-- Better spectral parameterizations
+
+- [ ] Residual + normalization layers
+- [ ] Hybrid models (spectral + sparse/local attention)
+- [ ] Longer-context experiments (n ≫ 4096)
+- [ ] Better spectral parameterizations
 
 ---
 
