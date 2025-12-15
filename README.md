@@ -24,6 +24,8 @@ Instead of token-to-token attention, we use spectral mixing:
 tokens → embedding → FFT → learned spectral filter → inverse FFT → logits
 ```
 
+The key properties are:
+
 - Global mixing happens in the frequency domain
 - No attention matrices
 - No n×n interactions
@@ -107,7 +109,7 @@ This project is a seed. It serves to prove that a different scaling law is both 
 
 ## Status
 
-Exploratory research. Shared privately for discussion, critique, and collaboration.
+Exploratory research. Shared for discussion, critique, and collaboration.
 
 <br>
 <br>
