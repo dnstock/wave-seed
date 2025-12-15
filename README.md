@@ -1,4 +1,4 @@
-# Spectral Mixing: An Attention-Free Sequence Model (Seed Project)
+# Spectral Mixing: An Attention-Free Sequence Model
 
 This repository explores whether the quadratic interaction at the core of modern Transformers can be replaced, rather than optimized, using a frequency-domain mixing operator based on the Fast Fourier Transform (FFT).
 
