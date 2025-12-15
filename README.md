@@ -74,7 +74,7 @@ This establishes that spectral mixing is both fast and usable as a sequence mode
 
 This work demonstrates a concrete replacement for the quadratic interaction operator, a different asymptotic scaling regime, and practical trainability in a minimal setting.
 
-This work does not claim superior language quality, full replacement of attention in all regimes (i.e. a Transformer drop-in), or immediate production readiness.
+This work does not claim superior language quality, full replacement of attention in all regimes, or immediate production readiness.
 
 ---
 
