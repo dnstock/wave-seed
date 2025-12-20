@@ -35,6 +35,18 @@ The key properties are:
 
 ---
 
+## Mental Model
+
+At a high level, the system replaces explicit token–token interaction with a single global mixing operator that acts uniformly over the entire sequence.
+
+```
+text → embeddings → spectral mixing (FFT) → reconstruction → logits
+```
+
+Everything downstream of spectral mixing is deliberately simple and local; all long-range interaction is handled by the frequency-domain operator.
+
+---
+
 ## Repository Structure
 
 The project has a modular structure, with a clean separation of concerns:
