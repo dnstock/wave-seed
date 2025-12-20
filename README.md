@@ -20,23 +20,6 @@ This project asks a narrower question:
 
 ## Core Idea
 
-Instead of token-to-token attention, we use spectral mixing:
-
-```
-tokens → embedding → FFT → learned spectral filter → inverse FFT → logits
-```
-
-The key properties are:
-
-- Global mixing happens in the frequency domain
-- No attention matrices
-- No n×n interactions
-- Complexity ~ O(n log n) in sequence length
-
----
-
-## Mental Model
-
 At a high level, the system replaces explicit token–token interaction with a single global mixing operator that acts uniformly over the entire sequence.
 
 ```
@@ -44,6 +27,13 @@ text → embeddings → spectral mixing (FFT) → reconstruction → logits
 ```
 
 Everything downstream of spectral mixing is deliberately simple and local; all long-range interaction is handled by the frequency-domain operator.
+
+The key properties are:
+
+- Global mixing happens in the frequency domain
+- No attention matrices
+- No n×n interactions
+- Complexity ~ O(n log n) in sequence length
 
 ---
 
