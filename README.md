@@ -4,6 +4,8 @@ This repository explores whether the quadratic interaction at the core of modern
 
 The short-term goal is to demonstrate a different scaling regime that remains trainable end-to-end, while avoiding n×n token interactions. Ultimately this could enable long-context models whose cost grows subquadratically with context length, creating a novel language modeling primitive.
 
+Any operator that changes the asymptotic behavior of sequence interaction directly attacks the long-context and compute bottlenecks that constrain current architectures. Thus, a goal is to invent fundamentally new interaction operators that alter these asymptotic properties.
+
 ---
 
 ## Why This Exists
