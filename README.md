@@ -33,6 +33,24 @@ The key properties are:
 
 ---
 
+## Repository Structure
+
+The project has a modular structure, with a clean separation of concerns:
+
+```
+data/ → corpus + encoding
+layers/ → spectral + reconstruction primitives
+model/ → wiring + gradients
+optim/ → update rules
+train.py → experiments
+sample.py → inference
+train_fft_lm.py → convenience shim
+```
+
+This layout keeps experimental logic, mathematical primitives, and training infrastructure clearly separated, making the system easier to reason about, extend, and audit.
+
+---
+
 ## What’s Implemented
 
 ### 1. Scaling Benchmark (Operator-Level)
