@@ -1,7 +1,7 @@
 import numpy as np
 import time
 
-# Optional modular imports
+# Optional modular imports (layers/ + future modules)
 try:
     from layers.spectral import spectral_mix_forward, spectral_mix_backward  # type: ignore
     from layers.output_head import head_forward, head_backward, softmax      # type: ignore
@@ -141,6 +141,45 @@ except Exception:
         }
         return dH0.astype(np.float32), grads
 
+# Optional modular imports for data/model/optim
+try:
+    from data.char_dataset import build_tiny_corpus, make_vocab, encode, decode   # type: ignore
+    from model.embedding import embed_lookup, embed_backward                      # type: ignore
+    from optim.sgd import sgd_step                                                # type: ignore
+    USING_EXTRA_MODULES = True
+except Exception:
+    USING_EXTRA_MODULES = False
+
+    def build_tiny_corpus(repeats: int = 200) -> str:
+        return (
+            "in the beginning there was only waves. "
+            "language is a construct, patterns are nature.\n"
+        ) * repeats
+
+    def make_vocab(text: str):
+        chars = sorted(set(text))
+        stoi = {c: i for i, c in enumerate(chars)}
+        itos = {i: c for c, i in stoi.items()}
+        return chars, stoi, itos
+
+    def encode(text: str, stoi: dict):
+        return np.array([stoi[c] for c in text], dtype=np.int64)
+
+    def decode(ids, itos: dict) -> str:
+        return "".join(itos[int(i)] for i in ids)
+
+    def embed_lookup(E, x_idx):
+        return E[x_idx]
+
+    def embed_backward(E, x_idx, dX):
+        dE = np.zeros_like(E)
+        np.add.at(dE, x_idx, dX)
+        return dE
+
+    def sgd_step(params: dict, grads: dict, lr: float):
+        for k, g in grads.items():
+            params[k] -= lr * g
+
 def one_hot(idx, vocab):
     x = np.zeros((idx.size, vocab), dtype=np.float32)
     x[np.arange(idx.size), idx] = 1.0
@@ -153,19 +192,14 @@ def cross_entropy(probs, y_idx):
 
 def main():
     # Tiny corpus
-    text = (
-        "in the beginning there was only waves. "
-        "language is a construct, patterns are nature.\n"
-    ) * 200
+    text = build_tiny_corpus(repeats=200)
 
     # Char-level vocab
-    chars = sorted(set(text))
-    stoi = {c:i for i,c in enumerate(chars)}
-    itos = {i:c for c,i in stoi.items()}
-    V = len(chars)
+    _chars, stoi, itos = make_vocab(text)
+    V = len(stoi)
 
     # Encode
-    data = np.array([stoi[c] for c in text], dtype=np.int64)
+    data = encode(text, stoi)
 
     # Hyperparams (tiny)
     d = 128
@@ -211,7 +245,7 @@ def main():
         y_idx = data[start + 1 : start + T + 1]     # next-char targets
 
         # Forward
-        X = E[x_idx]                         # (T, d)
+        X = embed_lookup(E, x_idx)           # (T, d)
         H0, spec_cache = spectral_mix_forward(X, F, T)        # (T, d)
         logits, head_cache = head_forward(H0, head_params, d)  # (T, V)
 
@@ -229,21 +263,13 @@ def main():
         # Backprop through spectral mixing
         dX, dF = spectral_mix_backward(dH0, F, spec_cache)
 
-        dE = np.zeros_like(E)
-        np.add.at(dE, x_idx, dX)
+        dE = embed_backward(E, x_idx, dX)
 
-        # SGD update
+        # SGD update (embedding)
         E -= lr * dE
 
         # Apply head grads (includes vocab projection)
-        head_params["Wv"] -= lr * head_grads["Wv"]
-        head_params["bv"] -= lr * head_grads["bv"]
-        head_params["w_norm1"] -= lr * head_grads["w_norm1"]
-        head_params["w_norm2"] -= lr * head_grads["w_norm2"]
-        head_params["W1"] -= lr * head_grads["W1"]
-        head_params["b1"] -= lr * head_grads["b1"]
-        head_params["W2"] -= lr * head_grads["W2"]
-        head_params["b2"] -= lr * head_grads["b2"]
+        sgd_step(head_params, head_grads, lr)
 
         # Keep convenience refs in sync (optional, but preserves existing variable usage elsewhere)
         W = head_params["Wv"]
@@ -268,7 +294,7 @@ def main():
         if len(window) < T:
             window = [pad_id] * (T - len(window)) + window
         x = np.array(window, dtype=np.int64)
-        X = E[x]
+        X = embed_lookup(E, x)
         H0, _spec_cache = spectral_mix_forward(X, F, T)
         logits, _head_cache = head_forward(H0, head_params, d)
 
@@ -289,7 +315,7 @@ def main():
         context.append(nxt)
 
     print("\n--- sample ---")
-    print("".join(itos[i] for i in context))
+    print(decode(context, itos))
 
 if __name__ == "__main__":
     main()
