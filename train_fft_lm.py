@@ -6,6 +6,41 @@ def softmax(x, axis=-1):
     ex = np.exp(x)
     return ex / np.sum(ex, axis=axis, keepdims=True)
 
+def rmsnorm(x, w, eps=1e-6):
+    # x: (n, d), w: (d,)
+    r2 = np.mean(x * x, axis=-1, keepdims=True) + eps
+    inv_r = 1.0 / np.sqrt(r2)
+    y = x * inv_r * w
+    return y, inv_r
+
+def rmsnorm_backward(dy, x, w, inv_r):
+    # dy: (n, d), x: (n, d), w: (d,), inv_r: (n, 1)
+    # y = x * inv_r * w
+    # dx = dy*(w*inv_r) - x * (S/(d)) * inv_r^3, where S = sum(dy*x*w) per row
+    n, d = x.shape
+    wx = w * inv_r  # (n, d) via broadcast
+    dwd = dy * (x * inv_r)  # (n, d)
+    dw = np.sum(dwd, axis=0)  # (d,)
+
+    S = np.sum(dy * x * w, axis=-1, keepdims=True)  # (n, 1)
+    dx = dy * wx - x * (S * (inv_r ** 3) / d)
+    return dx.astype(np.float32), dw.astype(np.float32)
+
+def gelu(x):
+    # tanh approximation
+    return 0.5 * x * (1.0 + np.tanh(np.sqrt(2.0 / np.pi) * (x + 0.044715 * x**3)))
+
+def gelu_backward(dy, x):
+    # derivative of tanh-approx GELU
+    a = np.sqrt(2.0 / np.pi)
+    x3 = x**3
+    t = a * (x + 0.044715 * x3)
+    th = np.tanh(t)
+    sech2 = 1.0 - th * th
+    dt_dx = a * (1.0 + 3.0 * 0.044715 * x * x)
+    dgelu_dx = 0.5 * (1.0 + th) + 0.5 * x * sech2 * dt_dx
+    return dy * dgelu_dx
+
 def one_hot(idx, vocab):
     x = np.zeros((idx.size, vocab), dtype=np.float32)
     x[np.arange(idx.size), idx] = 1.0
@@ -46,6 +81,7 @@ def main():
 
     # Hyperparams (tiny)
     d = 128
+    d_ff = 4 * d
     T = 256               # sequence length per step
     lr = 0.05
     steps = 500
@@ -56,6 +92,15 @@ def main():
     E = (rng.standard_normal((V, d)).astype(np.float32) / np.sqrt(d))
     W = (rng.standard_normal((d, V)).astype(np.float32) / np.sqrt(d))
     b = np.zeros((V,), dtype=np.float32)
+
+    # Output reconstruction head params
+    w_norm1 = np.ones((d,), dtype=np.float32)
+    w_norm2 = np.ones((d,), dtype=np.float32)
+
+    W1 = (rng.standard_normal((d, d_ff)).astype(np.float32) / np.sqrt(d))
+    b1 = np.zeros((d_ff,), dtype=np.float32)
+    W2 = (rng.standard_normal((d_ff, d)).astype(np.float32) / np.sqrt(d_ff))
+    b2 = np.zeros((d,), dtype=np.float32)
 
     # Learned spectral filter, start near-identity
     F = np.ones((T // 2 + 1, d), dtype=np.complex64)
@@ -70,8 +115,17 @@ def main():
 
         # Forward
         X = E[x_idx]                         # (T, d)
-        H, Z = spectral_mix(X, F, T)         # H: (T, d), Z: (T//2+1, d) complex
-        logits = (H @ W) / np.sqrt(d) + b    # (T, V)
+        H0, Z = spectral_mix(X, F, T)        # H0: (T, d)
+
+        # Output reconstruction head (position-wise, O(n) in sequence length)
+        H1, inv_r1 = rmsnorm(H0, w_norm1)            # (T, d)
+        U = H1 @ W1 + b1                              # (T, d_ff)
+        A = gelu(U)                                   # (T, d_ff)
+        Vmid = A @ W2 + b2                             # (T, d)
+        H2 = H1 + Vmid                                 # residual
+        H3, inv_r2 = rmsnorm(H2, w_norm2)             # (T, d)
+
+        logits = (H3 @ W) / np.sqrt(d) + b            # (T, V)
         probs = softmax(logits, axis=-1)
         loss = cross_entropy(probs, y_idx)
 
@@ -80,29 +134,50 @@ def main():
         dlogits[np.arange(T), y_idx] -= 1.0
         dlogits /= T  # mean
 
-        dW = H.T @ dlogits                   # (d, V)
+        # Vocab projection grads (logits = (H3 @ W)/sqrt(d) + b)
+        scale = 1.0 / np.sqrt(d)
+        dW = (H3.T @ dlogits) * scale        # (d, V)
         db = np.sum(dlogits, axis=0)         # (V,)
-        dH = dlogits @ W.T                   # (T, d)
+        dH3 = (dlogits @ W.T) * scale        # (T, d)
 
-        # Backprop through irfft(Z * F):
-        # H = irfft(Zf), so dZf = rfft(dH)
-        dZf = np.fft.rfft(dH, axis=0, norm="ortho")          # (T//2+1, d) complex
+        # Backprop through RMSNorm2
+        dH2, dw_norm2 = rmsnorm_backward(dH3, H2, w_norm2, inv_r2)
 
-        # Zf = Z * F
-        dF = dZf * np.conj(Z)                                # (T//2+1, d) complex
-        dZ = dZf * np.conj(F)                                # (T//2+1, d) complex
+        # Backprop through residual MLP
+        dH1 = dH2.copy()                     # residual path into H1
+        dVmid = dH2                           # (T, d)
 
-        # Z = rfft(X) so dX = irfft(dZ)
+        dW2 = A.T @ dVmid                     # (d_ff, d)
+        db2 = np.sum(dVmid, axis=0)           # (d,)
+        dA = dVmid @ W2.T                     # (T, d_ff)
+        dU = gelu_backward(dA, U)             # (T, d_ff)
+        dW1 = H1.T @ dU                       # (d, d_ff)
+        db1 = np.sum(dU, axis=0)              # (d_ff,)
+        dH1 += dU @ W1.T                      # accumulate into H1
+
+        # Backprop through RMSNorm1
+        dH0, dw_norm1 = rmsnorm_backward(dH1, H0, w_norm1, inv_r1)
+
+        # Backprop through spectral mixing
+        dZf = np.fft.rfft(dH0, axis=0, norm="ortho")          # (T//2+1, d) complex
+        dF = dZf * np.conj(Z)                                  # (T//2+1, d) complex
+        dZ = dZf * np.conj(F)                                  # (T//2+1, d) complex
         dX = np.fft.irfft(dZ, n=T, axis=0, norm="ortho").real.astype(np.float32)
 
         dE = np.zeros_like(E)
-        np.add.at(dE, x_idx, dX)             # accumulate per embedding row
+        np.add.at(dE, x_idx, dX)
 
         # SGD update
         E -= lr * dE
         W -= lr * dW
         b -= lr * db
         F -= (lr * dF).astype(np.complex64)
+        w_norm1 -= lr * dw_norm1
+        w_norm2 -= lr * dw_norm2
+        W1 -= lr * dW1
+        b1 -= lr * db1
+        W2 -= lr * dW2
+        b2 -= lr * db2
 
         if step % 25 == 0:
             elapsed = time.perf_counter() - t0
@@ -118,8 +193,14 @@ def main():
             window = [pad_id] * (T - len(window)) + window
         x = np.array(window, dtype=np.int64)
         X = E[x]
-        H, Z = spectral_mix(X, F, T)
-        logits = (H @ W) / np.sqrt(d) + b       # (T, V)
+        H0, Z = spectral_mix(X, F, T)
+        H1, _inv_r1 = rmsnorm(H0, w_norm1)
+        U = H1 @ W1 + b1
+        A = gelu(U)
+        Vmid = A @ W2 + b2
+        H2 = H1 + Vmid
+        H3, _inv_r2 = rmsnorm(H2, w_norm2)
+        logits = (H3 @ W) / np.sqrt(d) + b       # (T, V)
 
         temperature = 0.9
         top_k = 12
