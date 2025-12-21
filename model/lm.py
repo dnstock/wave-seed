@@ -1,3 +1,8 @@
+"""
+This is where the architecture diagram becomes code.
+It is just orchestration.
+"""
+
 import numpy as np
 
 from layers.spectral import spectral_mix_forward, spectral_mix_backward

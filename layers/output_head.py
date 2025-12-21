@@ -1,3 +1,14 @@
+"""
+This file answers: 
+“How do spectral representations become legible text?”
+
+It is the bridge that wires:
+H → RMSNorm → MLP → Residual → RMSNorm → logits
+
+Crucially:
+No FFT, no embeddings, no attention, and no sampling
+"""
+
 import numpy as np
 
 def softmax(x, axis=-1):

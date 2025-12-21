@@ -1,3 +1,8 @@
+"""
+This file should read almost like pseudocode.
+If it gets long, something leaked (structurally).
+"""
+
 import numpy as np
 import time
 

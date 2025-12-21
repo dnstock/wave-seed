@@ -1,3 +1,8 @@
+"""
+This is the core architectural claim, in code.
+No embeddings, no vocab, and no loss.
+"""
+
 import numpy as np
 
 def spectral_mix_forward(X: np.ndarray, F: np.ndarray, T: int):
