@@ -39,19 +39,45 @@ The key properties are:
 
 ## Repository Structure
 
-The project has a modular structure, with a clean separation of concerns:
+The project has a modular structure, with a clean separation of concerns.
 
+Here are the top-level directories:
 ```
-data/ → corpus + encoding
-layers/ → spectral + reconstruction primitives
-model/ → wiring + gradients
-optim/ → update rules
-train.py → experiments
-sample.py → inference
-train_fft_lm.py → convenience shim
+layers/  →  spectral + reconstruction primitives
+model/   →  wiring + gradients
+optim/   →  update rules
+data/    →  corpus + encoding
 ```
 
-This layout keeps experimental logic, mathematical primitives, and training infrastructure clearly separated, making the system easier to reason about, extend, and audit.
+Here is the file structure:
+```
+wave-seed/
+│
+├── layers/
+│   ├── spectral.py        # FFT mixing + backward
+│   ├── norm.py            # RMSNorm + backward
+│   ├── mlp.py             # position-wise MLP (+ backward)
+│   └── output_head.py     # reconstruction head forward/backward
+│
+├── model/
+│   ├── embedding.py       # embedding lookup + grads
+│   └── lm.py              # forward graph wiring only
+│
+├── optim/
+│   └── sgd.py             # parameter update rules
+│
+├── data/
+│   └── char_dataset.py    # corpus + encoding
+│
+├── train.py               # experiments (training loop)
+├── sample.py              # inference (sampling only)
+├── train_fft_lm.py        # convenience shim
+├── bench_mixers.py
+├── memo.md
+└── README.md
+```
+
+This layout keeps experimental logic, mathematical primitives, and training infrastructure clearly separated, making the system easier to reason about and extend. Each file stays small, auditable, and replaceable.
 
 ---
 
