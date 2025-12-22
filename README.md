@@ -77,7 +77,6 @@ wave-seed/
 │
 ├── train.py               # experiments (training loop)
 ├── sample.py              # inference (sampling only)
-├── train_fft_lm.py        # convenience shim
 ├── memo.md                # working research notes
 └── README.md
 ```
@@ -133,12 +132,27 @@ This work does not claim superior language quality, full replacement of attentio
 
 ## How to Run
 
+Follow these steps to run and test the FFT LM. No GPUs or ML frameworks required.
+
+### Train and sample
+
 ```bash
-python bench_mixers.py     # scaling benchmark
-python train_fft_lm.py     # minimal training loop
+# Run first:
+python train.py     # minimal training loop
+
+# Then run:
+python sample.py    # create sampling
 ```
 
-No GPUs or ML frameworks required.
+### Scaling benchmarks
+
+```bash
+# Run first:
+python bench/bench_mixers.py --d 256 --w 128 --tmin 128 --tmax 4096 --warmup 5 --iters 20 --csv bench_results.csv
+
+# Then run:
+python bench/plot_bench.py --csv bench_results.csv --out bench_scaling.png
+```
 
 ---
 
