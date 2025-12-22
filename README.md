@@ -43,6 +43,7 @@ The project has a modular structure, with a clean separation of concerns.
 
 Here are the top-level directories:
 ```
+bench/   →  benchmarking scripts + outputs
 layers/  →  spectral + reconstruction primitives
 model/   →  wiring + gradients
 optim/   →  update rules
@@ -52,6 +53,11 @@ data/    →  corpus + encoding
 Here is the file structure:
 ```
 wave-seed/
+│
+├── bench/
+│   ├── bench_mixers.py    # operator-level scaling benchmarks
+│   ├── plot_bench.py      # benchmark plotting utilities
+│   └── results/           # benchmark CSVs, plots, and artifacts
 │
 ├── layers/
 │   ├── spectral.py        # FFT mixing + backward
@@ -72,8 +78,7 @@ wave-seed/
 ├── train.py               # experiments (training loop)
 ├── sample.py              # inference (sampling only)
 ├── train_fft_lm.py        # convenience shim
-├── bench_mixers.py
-├── memo.md
+├── memo.md                # working research notes
 └── README.md
 ```
 
