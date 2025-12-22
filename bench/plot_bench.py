@@ -10,19 +10,22 @@ def main():
     ap.add_argument("--out", type=str, default="bench_scaling.png")
     args = ap.parse_args()
 
-    T, att_ms, fft_ms, att_mb, fft_mb = [], [], [], [], []
+    T, att_ms, loc_ms, fft_ms, att_mb, loc_mb, fft_mb = [], [], [], [], [], [], []
 
     with open(args.csv, "r") as f:
         r = csv.DictReader(f)
         for row in r:
             T.append(int(row["T"]))
             att_ms.append(float(row["attention_ms"]))
+            loc_ms.append(float(row["local_attention_ms"]))
             fft_ms.append(float(row["fft_ms"]))
             att_mb.append(float(row["attention_peak_bytes"]) / 1e6)
+            loc_mb.append(float(row["local_attention_peak_bytes"]) / 1e6)
             fft_mb.append(float(row["fft_peak_bytes"]) / 1e6)
 
     plt.figure()
     plt.plot(T, att_ms, marker="o", label="attention (ms)")
+    plt.plot(T, loc_ms, marker="o", label="local attention (ms)")
     plt.plot(T, fft_ms, marker="o", label="fft (ms)")
     plt.xscale("log", base=2)
     plt.yscale("log")
@@ -36,6 +39,7 @@ def main():
     out2 = args.out.replace(".png", "_mem.png")
     plt.figure()
     plt.plot(T, att_mb, marker="o", label="attention peak (MB)")
+    plt.plot(T, loc_mb, marker="o", label="local attention peak (MB)")
     plt.plot(T, fft_mb, marker="o", label="fft peak (MB)")
     plt.xscale("log", base=2)
     plt.yscale("log")

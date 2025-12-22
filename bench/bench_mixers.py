@@ -25,6 +25,32 @@ def attention_mix(X: np.ndarray) -> np.ndarray:
     Y = P @ X                            # (T, d)
     return Y
 
+def attention_local_mix(X: np.ndarray, w: int) -> np.ndarray:
+    """
+    Windowed attention mixer with fixed window size w.
+
+    For each position i, attends only to [i-w//2, i+w//2).
+    Complexity ~ O(T * w * d). Memory ~ O(T * w).
+
+    X: (T, d)
+    returns Y: (T, d)
+    """
+    T, d = X.shape
+    half = w // 2
+    Y = np.empty((T, d), dtype=np.float32)
+
+    for i in range(T):
+        j0 = max(0, i - half)
+        j1 = min(T, i - half + w)
+        K = X[j0:j1]  # (L, d)
+        q = X[i]      # (d,)
+
+        scores = (K @ q) / math.sqrt(d)         # (L,)
+        p = softmax(scores[None, :], axis=-1).ravel()  # (L,)
+        Y[i] = (p[:, None] * K).sum(axis=0)     # (d,)
+
+    return Y
+
 def fft_mix(X: np.ndarray, F: np.ndarray) -> np.ndarray:
     """
     Spectral mixer: rFFT -> elementwise multiply -> irFFT
@@ -72,6 +98,7 @@ def main():
     ap.add_argument("--iters", type=int, default=20)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--csv", type=str, default="bench_results.csv")
+    ap.add_argument("--w", type=int, default=128, help="local attention window size")
     args = ap.parse_args()
 
     rng = np.random.default_rng(args.seed)
@@ -83,23 +110,33 @@ def main():
         F = np.ones((T // 2 + 1, args.d), dtype=np.complex64)
 
         att_fn = lambda x: attention_mix(x)
+        loc_fn = lambda x: attention_local_mix(x, args.w)
         fft_fn = lambda x: fft_mix(x, F)
 
         att_ms = bench_one(att_fn, X, args.warmup, args.iters)
+        loc_ms = bench_one(loc_fn, X, args.warmup, args.iters)
         fft_ms = bench_one(fft_fn, X, args.warmup, args.iters)
 
         att_peak = peak_mem_one(att_fn, X, max(1, args.warmup // 2), max(3, args.iters // 3))
+        loc_peak = peak_mem_one(loc_fn, X, max(1, args.warmup // 2), max(3, args.iters // 3))
         fft_peak = peak_mem_one(fft_fn, X, max(1, args.warmup // 2), max(3, args.iters // 3))
 
-        rows.append((T, args.d, att_ms, fft_ms, att_peak, fft_peak))
-        print(f"T={T:5d} d={args.d:4d} | att {att_ms:8.2f} ms | fft {fft_ms:8.2f} ms"
-            f" | peak att {att_peak/1e6:7.1f} MB | peak fft {fft_peak/1e6:7.1f} MB")
+        rows.append((T, args.d, att_ms, loc_ms, fft_ms, att_peak, loc_peak, fft_peak))
+        print(
+            f"T={T:5d} d={args.d:4d} | "
+            f"att {att_ms:8.2f} ms | loc(w={args.w}) {loc_ms:8.2f} ms | fft {fft_ms:8.2f} ms | "
+            f"peak att {att_peak/1e6:7.1f} MB | peak loc {loc_peak/1e6:7.1f} MB | peak fft {fft_peak/1e6:7.1f} MB"
+        )
 
         T *= 2
 
     with open(args.csv, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["T", "d", "attention_ms", "fft_ms", "attention_peak_bytes", "fft_peak_bytes"])
+        w.writerow([
+            "T", "d",
+            "attention_ms", "local_attention_ms", "fft_ms",
+            "attention_peak_bytes", "local_attention_peak_bytes", "fft_peak_bytes"
+        ])
         w.writerows(rows)
 
     print(f"\nwrote: {args.csv}")
