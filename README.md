@@ -160,8 +160,6 @@ python bench/plot_bench.py --csv bench_results.csv --out bench_scaling.png
 
 Scaling limits dominate the cost of large language models, not constant factors.
 
-Any operator that changes the asymptotic behavior of sequence interaction directly attacks the long-context and compute bottlenecks that constrain current architectures.
-
 This project is a seed. It serves to prove that a different scaling law is both mathematically grounded and empirically observable on modest hardware.
 
 ---
