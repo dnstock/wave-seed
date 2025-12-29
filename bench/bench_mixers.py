@@ -3,6 +3,8 @@ import csv
 import math
 import time
 import tracemalloc
+from pathlib import Path
+from datetime import datetime
 
 import numpy as np
 
@@ -112,6 +114,15 @@ def main():
 
     args = ap.parse_args()
 
+    # --- Directory & Path Handling ---
+    script_dir = Path(__file__).parent.absolute()
+    results_dir = script_dir / "results"
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    ts = datetime.now().strftime("%Y%m%d_%H%M")
+    results_file = results_dir / f"{Path(args.csv).stem}_{ts}.csv"
+
+    # --- Execution Logic ---
     rng = np.random.default_rng(args.seed)
 
     rows = []
@@ -141,7 +152,8 @@ def main():
 
         T *= 2
 
-    with open(args.csv, "w", newline="") as f:
+    # --- Save File ---
+    with open(results_file, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow([
             "T", "d",
@@ -150,7 +162,7 @@ def main():
         ])
         w.writerows(rows)
 
-    print(f"\nwrote: {args.csv}")
+    print(f"\nwrote: {results_file}")
 
 if __name__ == "__main__":
     main()
