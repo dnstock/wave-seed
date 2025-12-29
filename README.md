@@ -137,21 +137,29 @@ Follow these steps to run and test the FFT LM. No GPUs or ML frameworks required
 ### Train and sample
 
 ```bash
-# Run first:
-python train.py     # minimal training loop
+# Run minimal training loop
+python train.py
 
-# Then run:
-python sample.py    # create sampling
+# Then create sampling data
+python sample.py
 ```
 
 ### Scaling benchmarks
 
+To run with the default parameters:
 ```bash
-# Run first:
-python bench/bench_mixers.py --d 256 --w 128 --tmin 128 --tmax 4096 --warmup 5 --iters 20 --csv bench_results.csv
+# Calculate the benchmarks
+python bench/bench_mixers.py
 
-# Then run:
-python bench/plot_bench.py --csv bench_results.csv --out bench_scaling.png
+# Then plot the results
+python bench/plot_bench.py --latest
+```
+
+Custom model & sequence dimentions and benchmarking settings are also available.
+```bash
+# View the runtime options and descriptions
+python bench/bench_mixers.py --help
+python bench/plot_bench.py --help
 ```
 
 ---
