@@ -162,7 +162,12 @@ def main():
         ])
         w.writerows(rows)
 
-    print(f"\nwrote: {results_file}")
+    # --- Summary Printout ---
+    print(f"\n" + "="*50)
+    print(f"BENCHMARK COMPLETE")
+    print("-"*50)
+    print(f"Results:\nfile://{results_file.resolve()}")
+    print("="*50)
 
 if __name__ == "__main__":
     main()

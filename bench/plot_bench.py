@@ -100,8 +100,14 @@ def main():
     plt.tight_layout()
     plt.savefig(out_mem, dpi=200)
 
-    print(f"wrote: {out_perf}")
-    print(f"wrote: {out_mem}")
+    # --- Summary Printout ---
+    print(f"\n" + "="*50)
+    print(f"PLOTS COMPLETE")
+    print("-"*50)
+    print(f"Data source:\n{csv_file}")
+    print(f"Performance plot:\n{out_perf.resolve()}")
+    print(f"Memory plot:\n{out_mem.resolve()}")
+    print("="*50)
 
 if __name__ == "__main__":
     main()
