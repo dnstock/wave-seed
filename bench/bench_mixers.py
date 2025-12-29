@@ -90,15 +90,26 @@ def peak_mem_one(fn, X, warmup: int, iters: int) -> int:
     return peak  # bytes
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--d", type=int, default=256)
-    ap.add_argument("--tmin", type=int, default=128)
-    ap.add_argument("--tmax", type=int, default=4096)
-    ap.add_argument("--warmup", type=int, default=5)
-    ap.add_argument("--iters", type=int, default=20)
-    ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--csv", type=str, default="bench_results.csv")
-    ap.add_argument("--w", type=int, default=128, help="local attention window size")
+    ap = argparse.ArgumentParser(
+        description="Benchmark performance and memory for Attention, Local Attention, and FFT mixers.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+
+    # Grouping arguments for better readability in --help
+    dims = ap.add_argument_group("Model & Sequence Dimensions")
+    dims.add_argument("--d", type=int, default=256, help="Hidden dimension size")
+    dims.add_argument("--tmin", type=int, default=128, help="Minimum sequence length")
+    dims.add_argument("--tmax", type=int, default=4096, help="Maximum sequence length")
+    dims.add_argument("--w", type=int, default=128, help="Window size for local attention")
+
+    timing = ap.add_argument_group("Benchmarking Settings")
+    timing.add_argument("--warmup", type=int, default=5, help="Warmup iterations per sequence length")
+    timing.add_argument("--iters", type=int, default=20, help="Benchmark iterations to average per run")
+    timing.add_argument("--seed", type=int, default=0, help="Random seed for data generation")
+
+    output = ap.add_argument_group("Output")
+    output.add_argument("--csv", type=str, default="bench_results.csv", help="Filename to store results")
+
     args = ap.parse_args()
 
     rng = np.random.default_rng(args.seed)

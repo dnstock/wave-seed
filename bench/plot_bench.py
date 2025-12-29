@@ -5,9 +5,12 @@ import math
 import matplotlib.pyplot as plt
 
 def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--csv", type=str, default="bench_results.csv")
-    ap.add_argument("--out", type=str, default="bench_scaling.png")
+    ap = argparse.ArgumentParser(
+        description="Benchmark plotter to graph performance and memory results.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    ap.add_argument("--csv", type=str, default="bench_results.csv", help="Base filename for results")
+    ap.add_argument("--out", type=str, default="bench_scaling.png", help="Base filename for the plot")
     args = ap.parse_args()
 
     T, att_ms, loc_ms, fft_ms, att_mb, loc_mb, fft_mb = [], [], [], [], [], [], []
