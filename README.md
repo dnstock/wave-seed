@@ -87,25 +87,27 @@ This layout keeps experimental logic, mathematical primitives, and training infr
 
 ## What’s Implemented
 
-### 1. Scaling Benchmark (Operator-Level)
+### 1. Scaling & Memory Benchmarks (Operator-Level)
 
 A minimal benchmark compares:
 
-- **Baseline:** single-head self-attention core (QKᵀ → softmax → AV)
-- **Replacement:** FFT-based spectral mixing
+- **Global Attention:** single-head self-attention core (QKᵀ → softmax → AV)
+- **Local Attention:** sliding window attention with fixed window size
+- **Attention-Free Spectral Mixing (AFSM):** FFT-based replacement
 
-**Results (CPU / NumPy, single block):**
+**Results (CPU / NumPy, single block, d=256):**
 
-| n | attention (ms) | spectral mixing (ms) |
-|---:|---:|---:|
-| 128 | 2.39 | 0.24 |
-| 256 | 2.83 | 0.47 |
-| 512 | 4.18 | 0.96 |
-| 1024 | 9.58 | 1.92 |
-| 2048 | 29.35 | 3.88 |
-| 4096 | 106.21 | 9.50 |
+| Seq. Length (`T`) | Global Attention | Local Attention | AFSM |
+|---:|---:|---:|---:|
+| | latency / memory | latency / memory | latency / memory |
+| 128 | 0.06 ms / 0.3 MB | 2.44 ms / 0.3 MB | 0.08 ms / 0.5 MB |
+| 256 | 0.22 ms / 1.1 MB | 5.07 ms / 0.4 MB | 0.14 ms / 1.1 MB |
+| 512 | 0.90 ms / 4.2 MB | 10.35 ms / 0.7 MB | 0.28 ms / 2.1 MB |
+| 1024 | 3.94 ms / 16.8 MB | 20.93 ms / 1.2 MB | 0.54 ms / 4.2 MB |
+| 2048 | 17.38 ms / 67.2 MB | 42.03 ms / 2.3 MB | 1.22 ms / 8.4 MB |
+| 4096 | 80.07 ms / 268.5 MB | 84.53 ms / 4.4 MB | 2.70 ms / 16.8 MB |
 
-The log-log plot [bench_scaling_loglog.png](bench_scaling_loglog.png) shows attention accelerating sharply while spectral mixing follows a much gentler curve consistent with O(n log n) behavior.
+The log-log [bench scaling plot](bench/results/bench_scaling_20251229_1801.png) shows attention accelerating sharply while spectral mixing follows a much gentler curve consistent with O(n log n) behavior. The [bench memory plot](bench/results/bench_scaling_20251229_1801_mem.png) is perhaps even more significant, since attention leads to superlinear memory growth while the AFSM peak allocation grows slowly and predictably. This addresses the primary bottleneck for long-context models. The most compelling insight comes when comparing to local attention, since AFSM scales more favorably while providing the global interaction that local attention sacrifices.
 
 ---
 
