@@ -58,12 +58,12 @@ def main():
         r = csv.DictReader(f)
         for row in r:
             T.append(int(row["T"]))
-            att_ms.append(float(row["attention_ms"]))
-            loc_ms.append(float(row["local_attention_ms"]))
+            att_ms.append(float(row["att_ms"]))
+            loc_ms.append(float(row["loc_ms"]))
             fft_ms.append(float(row["fft_ms"]))
-            att_mb.append(float(row["attention_peak_bytes"]) / 1e6)
-            loc_mb.append(float(row["local_attention_peak_bytes"]) / 1e6)
-            fft_mb.append(float(row["fft_peak_bytes"]) / 1e6)
+            att_mb.append(float(row["att_pk"]) / 1e6)
+            loc_mb.append(float(row["loc_pk"]) / 1e6)
+            fft_mb.append(float(row["fft_pk"]) / 1e6)
 
     # --- Plotting Logic ---
     # Construct output names with timestamp if --latest was used
@@ -74,29 +74,33 @@ def main():
     out_perf = results_dir / final_out_name
     out_mem = results_dir / final_mem_name
 
-    plt.figure()
-    plt.plot(T, att_ms, marker="o", label="attention (ms)")
-    plt.plot(T, loc_ms, marker="o", label="local attention (ms)")
-    plt.plot(T, fft_ms, marker="o", label="fft (ms)")
+    # Plot 1: Performance
+    plt.figure(figsize=(10, 6))
+    plt.plot(T, att_ms, marker="o", label="Attention $O(T^2)$")
+    plt.plot(T, loc_ms, marker="s", label="Local Attention $O(T \\cdot w)$")
+    plt.plot(T, fft_ms, marker="^", label="FFT Mixer $O(T \\log T)$")
     plt.xscale("log", base=2)
     plt.yscale("log")
-    plt.xlabel("sequence length T (log2)")
-    plt.ylabel("time per op (ms, log)")
-    plt.title(f"Scaling: Attention vs FFT mixer (NumPy)\nSource: {csv_file.name}")
+    plt.xlabel("Sequence Length $T$")
+    plt.ylabel("Latency (ms)")
+    plt.title(f"Mixing Complexity Scaling\nSource: {csv_file.name}")
     plt.legend()
+    plt.grid(True, which="major", ls="-", alpha=0.2)
     plt.tight_layout()
     plt.savefig(out_perf, dpi=200)
 
-    plt.figure()
-    plt.plot(T, att_mb, marker="o", label="attention peak (MB)")
-    plt.plot(T, loc_mb, marker="o", label="local attention peak (MB)")
-    plt.plot(T, fft_mb, marker="o", label="fft peak (MB)")
+    # Plot 2: Memory
+    plt.figure(figsize=(10, 6))
+    plt.plot(T, att_mb, marker="o", label="Attention Peak")
+    plt.plot(T, loc_mb, marker="s", label="Local Attention Peak")
+    plt.plot(T, fft_mb, marker="^", label="FFT Mixer Peak")
     plt.xscale("log", base=2)
     plt.yscale("log")
-    plt.xlabel("sequence length T (log2)")
-    plt.ylabel("peak bytes (MB, log)")
-    plt.title(f"Peak alloc trend: Attention vs FFT mixer (tracemalloc)\nSource: {csv_file.name}")
+    plt.xlabel("Sequence Length $T$")
+    plt.ylabel("Memory (MB)")
+    plt.title(f"Memory Usage Scaling\nSource: {csv_file.name}")
     plt.legend()
+    plt.grid(True, which="major", ls="-", alpha=0.2)
     plt.tight_layout()
     plt.savefig(out_mem, dpi=200)
 

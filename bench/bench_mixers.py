@@ -157,8 +157,8 @@ def main():
         w = csv.writer(f)
         w.writerow([
             "T", "d",
-            "attention_ms", "local_attention_ms", "fft_ms",
-            "attention_peak_bytes", "local_attention_peak_bytes", "fft_peak_bytes"
+            "att_ms", "loc_ms", "fft_ms",
+            "att_pk", "loc_pk", "fft_pk"
         ])
         w.writerows(rows)
 
