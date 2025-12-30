@@ -107,7 +107,7 @@ A minimal benchmark compares:
 | 2048 | 17.38 ms / 67.2 MB | 42.03 ms / 2.3 MB | 1.22 ms / 8.4 MB |
 | 4096 | 80.07 ms / 268.5 MB | 84.53 ms / 4.4 MB | 2.70 ms / 16.8 MB |
 
-The log-log [bench scaling plot](bench/results/bench_scaling_20251229_1801.png) shows attention accelerating sharply while spectral mixing follows a much gentler curve consistent with O(n log n) behavior. The [bench memory plot](bench/results/bench_scaling_20251229_1801_mem.png) is perhaps even more significant, since attention leads to superlinear memory growth while the AFSM peak allocation grows slowly and predictably. This addresses the primary bottleneck for long-context models. The most compelling insight comes when comparing to local attention, since AFSM scales more favorably while providing the global interaction that local attention sacrifices.
+The log-log [bench scaling plot](bench/results/bench_scaling_20251229_1801.png) shows attention accelerating sharply while spectral mixing follows a much gentler curve consistent with `O(n log n)` behavior. The [bench memory plot](bench/results/bench_scaling_20251229_1801_mem.png) is perhaps even more significant, since attention leads to superlinear memory growth while the AFSM peak allocation grows slowly and predictably. This addresses the primary bottleneck for long-context models. The most compelling insight comes when comparing to local attention, since AFSM scales more favorably while providing the global interaction that local attention sacrifices.
 
 ---
 
