@@ -170,20 +170,10 @@ python bench/plot_bench.py --help
 
 If you’re interested in my broader motivation and technical framing behind this project, the following articles provide complementary context. They are optional reading, but together they explain why I created this repository and what questions it is trying to answer.
 
-<div style="border-bottom: 1px solid RGBA(209, 217, 224, 0.7);margin-bottom: 5px;padding-bottom: 5px;">
-  <span style="float:right; vertical-align: middle;">🟨 <em>Conceptual framing</em></span>
-  <strong><a href="https://medium.com/@dnstock/neural-networks-rocket-fuel-not-antigravity-fd0b569d9808" style="background-image: url(link-external.svg); background-position: center right; background-repeat: no-repeat; background-size: 0.857em; padding-right: 1em;">
-  Neural Networks: Rocket Fuel, Not Antigravity
-  </a></strong>
-</div>
+- <strong><a href="https://medium.com/@dnstock/neural-networks-rocket-fuel-not-antigravity-fd0b569d9808">Neural Networks: Rocket Fuel, Not Antigravity <img src="link-external.svg"/></a></strong> &nbsp; | &nbsp; <em>Conceptual framing</em><br/>
 A high-level critique of brute-force neural scaling and an argument for fundamentally new computational primitives beyond “bigger models, more compute.”
 
-<div style="border-bottom: 1px solid RGBA(209, 217, 224, 0.7);margin-bottom: 5px;padding-bottom: 5px;margin-top: 25px;">
-  <span style="float:right; vertical-align: middle;">🟦 <em>Technical deep dive</em></span>
-  <strong><a href="https://medium.com/@dnstock/spectral-mixing-an-attention-free-sequence-model-22a0ed75ec61" style="background-image: url(link-external.svg); background-position: center right; background-repeat: no-repeat; background-size: 0.857em; padding-right: 1em;">
-  Spectral Mixing: An Attention-Free Sequence Model
-  </a></strong>
-</div>
+- <strong><a href="https://medium.com/@dnstock/spectral-mixing-an-attention-free-sequence-model-22a0ed75ec61">Spectral Mixing: An Attention-Free Sequence Model <img src="link-external.svg"/></a></strong> &nbsp; | &nbsp; <em>Technical deep dive</em><br/>
 Explores attention-free spectral mixing, early runtime and memory benchmarks, and the scaling implications of frequency-domain sequence interaction.
 
 ---
